@@ -6,3 +6,4 @@ chroma_migrated
 chromadb
 db_logs
 litellm_uuid.txt
+user_profile.txt
