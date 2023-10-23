@@ -1,2 +1,2 @@
-openai
-chromadb
+openai==0.28.1
+chromadb==0.4.14
