@@ -56,12 +56,12 @@ def chatbot(messages, model="gpt-4", temperature=0):
 if __name__ == '__main__':
     # instantiate ChromaDB
     persist_directory = "chromadb"
-    chroma_client = chromadb.Client(Settings(persist_directory=persist_directory,chroma_db_impl="duckdb+parquet",))
+    chroma_client = chromadb.PersistentClient(path="./chromadb")
+    #chroma_client = chromadb.Client(Settings(persist_directory=persist_directory,chroma_db_impl="duckdb+parquet",))
     collection = chroma_client.get_or_create_collection(name="knowledge_base")
 
 
     # instantiate chatbot
-    openai.api_key = open_file('key_openai.txt')
     conversation = list()
     conversation.append({'role': 'system', 'content': open_file('system_default.txt')})
     user_messages = list()
@@ -162,4 +162,4 @@ if __name__ == '__main__':
                 new_id = str(uuid4())
                 collection.add(documents=[a2],ids=[new_id])
                 save_file('db_logs/log_%s_split.txt' % time(), 'Split document %s, added %s:\n%s\n\n%s' % (kb_id, new_id, a1, a2))
-        chroma_client.persist()
+        #chroma_client.persist()
