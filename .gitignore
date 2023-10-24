@@ -7,3 +7,4 @@ chromadb
 db_logs
 litellm_uuid.txt
 user_profile.txt
+__pycache__/
