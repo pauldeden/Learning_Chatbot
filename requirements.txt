@@ -1,3 +1,4 @@
 openai==0.28.1
 chromadb==0.4.14
 youtube-transcript-api==0.6.1
+tiktoken==0.5.1
