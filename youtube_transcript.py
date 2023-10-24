@@ -30,7 +30,7 @@ def get_spr_from_youtube(video_id):
     for chunk in chunks:
         # Prepare the conversation
         conversation = [
-            {"role": "system", "content": "You are a Sparse Priming Representation (SPR) writer..."},
+            {"role": "system", "content": open_file('system_spr_encoder.txt')},
             {"role": "user", "content": chunk}
         ]
         
