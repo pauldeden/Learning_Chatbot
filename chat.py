@@ -1,3 +1,5 @@
+import re
+from youtube_transcript import get_spr_from_youtube
 import chromadb
 from chromadb.config import Settings
 import openai
@@ -125,6 +127,21 @@ if __name__ == '__main__':
     while True:
         # get user input
         text = input('\n\nUSER: ')
+        
+        # Check if the input is a YouTube URL
+        youtube_url_pattern = r"(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})"
+        match = re.match(youtube_url_pattern, text)
+        if match:
+            # Extract the video ID from the URL
+            video_id = match.group(6)
+            
+            # Get the SPRs from the YouTube video
+            sprs = get_spr_from_youtube(video_id)
+            
+            # Add the SPRs to the knowledge base
+            for spr in sprs:
+                collection.add(documents=[spr], ids=[str(uuid4())])
+        
         user_messages.append(text)
         all_messages.append('USER: %s' % text)
         conversation.append({'role': 'user', 'content': text})
