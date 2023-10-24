@@ -6,8 +6,9 @@ from time import time, sleep
 from uuid import uuid4
 import threading
 
-# Create a lock
+# Create locks
 kb_update_lock = threading.Lock()
+profile_update_lock = threading.Lock()
 
 
 def save_yaml(filepath, data):
@@ -98,11 +99,20 @@ def update_kb(collection, main_scratchpad):
                 save_file('db_logs/log_%s_split.txt' % time(), 'Split document %s, added %s:\n%s\n\n%s' % (kb_id, new_id, a1, a2))
         #chroma_client.persist()
 
+def update_profile(current_profile, user_scratchpad):
+    # Acquire the lock
+    with profile_update_lock:
+        profile_length = len(current_profile.split(' '))
+        profile_conversation = list()
+        profile_conversation.append({'role': 'system', 'content': open_file('system_update_user_profile.txt').replace('<<UPD>>', current_profile).replace('<<WORDS>>', str(profile_length))})
+        profile_conversation.append({'role': 'user', 'content': user_scratchpad})
+        profile = chatbot(profile_conversation)
+        save_file('user_profile.txt', profile)
+
 if __name__ == '__main__':
     # instantiate ChromaDB
     persist_directory = "chromadb"
     chroma_client = chromadb.PersistentClient(path="./chromadb")
-    #chroma_client = chromadb.Client(Settings(persist_directory=persist_directory,chroma_db_impl="duckdb+parquet",))
     collection = chroma_client.get_or_create_collection(name="knowledge_base")
 
 
@@ -153,14 +163,10 @@ if __name__ == '__main__':
         user_scratchpad = '\n'.join(user_messages).strip()
 
 
-        # update user profile
+        # Update the user profile
         print('\n\nUpdating user profile...')
-        profile_length = len(current_profile.split(' '))
-        profile_conversation = list()
-        profile_conversation.append({'role': 'system', 'content': open_file('system_update_user_profile.txt').replace('<<UPD>>', current_profile).replace('<<WORDS>>', str(profile_length))})
-        profile_conversation.append({'role': 'user', 'content': user_scratchpad})
-        profile = chatbot(profile_conversation)
-        save_file('user_profile.txt', profile)
+        profile_update_thread = threading.Thread(target=update_profile, args=(current_profile, user_scratchpad))
+        profile_update_thread.start()
 
 
         # update main scratchpad
