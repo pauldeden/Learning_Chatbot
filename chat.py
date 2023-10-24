@@ -6,6 +6,9 @@ from time import time, sleep
 from uuid import uuid4
 import threading
 
+# Create a lock
+kb_update_lock = threading.Lock()
+
 
 def save_yaml(filepath, data):
     with open(filepath, 'w', encoding='utf-8') as file:
@@ -55,43 +58,45 @@ def chatbot(messages, model="gpt-4", temperature=0):
 
 
 def update_kb(collection, main_scratchpad):
-    if collection.count() == 0:
-        # yay first KB!
-        kb_convo = list()
-        kb_convo.append({'role': 'system', 'content': open_file('system_instantiate_new_kb.txt')})
-        kb_convo.append({'role': 'user', 'content': main_scratchpad})
-        article = chatbot(kb_convo)
-        new_id = str(uuid4())
-        collection.add(documents=[article],ids=[new_id])
-        save_file('db_logs/log_%s_add.txt' % time(), 'Added document %s:\n%s' % (new_id, article))
-    else:
-        results = collection.query(query_texts=[main_scratchpad], n_results=1)
-        kb = results['documents'][0][0]
-        kb_id = results['ids'][0][0]
-        
-        # Expand current KB
-        kb_convo = list()
-        kb_convo.append({'role': 'system', 'content': open_file('system_update_existing_kb.txt').replace('<<KB>>', kb)})
-        kb_convo.append({'role': 'user', 'content': main_scratchpad})
-        article = chatbot(kb_convo)
-        collection.update(ids=[kb_id],documents=[article])
-        save_file('db_logs/log_%s_update.txt' % time(), 'Updated document %s:\n%s' % (kb_id, article))
-        # TODO - save more info in DB logs, probably as YAML file (original article, new info, final article)
-        
-        # Split KB if too large
-        kb_len = len(article.split(' '))
-        if kb_len > 1000:
+    # Acquire the lock
+    with kb_update_lock:
+        if collection.count() == 0:
+            # yay first KB!
             kb_convo = list()
-            kb_convo.append({'role': 'system', 'content': open_file('system_split_kb.txt')})
-            kb_convo.append({'role': 'user', 'content': article})
-            articles = chatbot(kb_convo).split('ARTICLE 2:')
-            a1 = articles[0].replace('ARTICLE 1:', '').strip()
-            a2 = articles[1].strip()
-            collection.update(ids=[kb_id],documents=[a1])
+            kb_convo.append({'role': 'system', 'content': open_file('system_instantiate_new_kb.txt')})
+            kb_convo.append({'role': 'user', 'content': main_scratchpad})
+            article = chatbot(kb_convo)
             new_id = str(uuid4())
-            collection.add(documents=[a2],ids=[new_id])
-            save_file('db_logs/log_%s_split.txt' % time(), 'Split document %s, added %s:\n%s\n\n%s' % (kb_id, new_id, a1, a2))
-    #chroma_client.persist()
+            collection.add(documents=[article],ids=[new_id])
+            save_file('db_logs/log_%s_add.txt' % time(), 'Added document %s:\n%s' % (new_id, article))
+        else:
+            results = collection.query(query_texts=[main_scratchpad], n_results=1)
+            kb = results['documents'][0][0]
+            kb_id = results['ids'][0][0]
+            
+            # Expand current KB
+            kb_convo = list()
+            kb_convo.append({'role': 'system', 'content': open_file('system_update_existing_kb.txt').replace('<<KB>>', kb)})
+            kb_convo.append({'role': 'user', 'content': main_scratchpad})
+            article = chatbot(kb_convo)
+            collection.update(ids=[kb_id],documents=[article])
+            save_file('db_logs/log_%s_update.txt' % time(), 'Updated document %s:\n%s' % (kb_id, article))
+            # TODO - save more info in DB logs, probably as YAML file (original article, new info, final article)
+            
+            # Split KB if too large
+            kb_len = len(article.split(' '))
+            if kb_len > 1000:
+                kb_convo = list()
+                kb_convo.append({'role': 'system', 'content': open_file('system_split_kb.txt')})
+                kb_convo.append({'role': 'user', 'content': article})
+                articles = chatbot(kb_convo).split('ARTICLE 2:')
+                a1 = articles[0].replace('ARTICLE 1:', '').strip()
+                a2 = articles[1].strip()
+                collection.update(ids=[kb_id],documents=[a1])
+                new_id = str(uuid4())
+                collection.add(documents=[a2],ids=[new_id])
+                save_file('db_logs/log_%s_split.txt' % time(), 'Split document %s, added %s:\n%s\n\n%s' % (kb_id, new_id, a1, a2))
+        #chroma_client.persist()
 
 if __name__ == '__main__':
     # instantiate ChromaDB
