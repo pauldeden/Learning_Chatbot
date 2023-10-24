@@ -1,7 +1,8 @@
 import re
 from youtube_transcript_api import YouTubeTranscriptApi
-from tiktoken import Tokenizer, TokenCount
+from tiktoken import Tokenizer
 from openai import OpenAI
+from tiktoken import Tokenizer, TokenCount
 
 def get_spr_from_youtube(video_id):
     # Fetch the transcript
@@ -10,8 +11,8 @@ def get_spr_from_youtube(video_id):
     # Concatenate all the parts of the transcript
     full_transcript = " ".join([part['text'] for part in transcript])
     
-    # Initialize the tokenizer
-    tokenizer = Tokenizer()
+    # Initialize the tokenizer with the encoding for gpt-4
+    tokenizer = Tokenizer.from_pretrained("gpt-4")
     
     # Split the transcript into chunks of no more than 3000 tokens
     chunks = []
