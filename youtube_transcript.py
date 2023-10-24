@@ -1,9 +1,13 @@
 import re
 from youtube_transcript_api import YouTubeTranscriptApi
-from tiktoken import get_encoding
+import tiktoken
 from openai import ChatCompletion
 # Removed the import statement
 
+def open_file(filepath):
+    with open(filepath, 'r', encoding='utf-8', errors='ignore') as infile:
+        return infile.read()
+    
 def get_spr_from_youtube(video_id):
     # Fetch the transcript
     transcript = YouTubeTranscriptApi.get_transcript(video_id)
@@ -12,7 +16,7 @@ def get_spr_from_youtube(video_id):
     full_transcript = " ".join([part['text'] for part in transcript])
     
     # Initialize the tokenizer with the encoding for gpt-4
-    encoding = get_encoding("gpt-4")
+    encoding = tiktoken.encoding_for_model('gpt-4')
     
     # Split the transcript into chunks of no more than 3000 tokens
     chunks = []
@@ -35,7 +39,7 @@ def get_spr_from_youtube(video_id):
         ]
         
         # Generate the SPR
-        response = OpenAI.ChatCompletion.create(model="gpt-4", messages=conversation)
+        response = ChatCompletion.create(model="gpt-4", messages=conversation)
         sprs.append(response['choices'][0]['message']['content'])
     
     return sprs
