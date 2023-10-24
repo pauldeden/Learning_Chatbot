@@ -2,7 +2,7 @@ import re
 from youtube_transcript_api import YouTubeTranscriptApi
 from tiktoken import get_encoding
 from openai import ChatCompletion
-from tiktoken import TokenCount
+# Removed the import statement
 
 def get_spr_from_youtube(video_id):
     # Fetch the transcript
